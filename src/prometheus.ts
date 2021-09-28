@@ -8,6 +8,6 @@ export const commands_received = new Prometheus.Counter({
 })
 
 export const server = http.createServer(async (req, res) => {
-    res.setHeader('Content-Type', Prometheus.register.contentType);
-    res.end(await Prometheus.register.metrics())
+  res.setHeader('Content-Type', Prometheus.register.contentType);
+  res.end(await Prometheus.register.metrics())
 })
