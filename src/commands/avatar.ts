@@ -4,11 +4,11 @@ import type Command from "../interfaces/Command"
 
 const data = new SlashCommandBuilder()
 	.setName('avatar')
-	.setDescription('Get the avatar URL of selected user, or your own avatar.')
+	.setDescription('Retona o avatar do alvo ou de si mesmo!')
     .addUserOption((option) => {
         return option
             .setName('target')
-            .setDescription('The target user to show the avatar')
+            .setDescription('Usuário alvo')
             .setRequired(false)
     });
 

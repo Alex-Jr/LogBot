@@ -13,6 +13,7 @@ import type {
 } from '@discordjs/voice';
 import Track from './Track';
 import sleep from '../utils/sleep';
+import { musics_played } from '../prometheus';
 
 /**
  * A MusicSubscription exists for each active VoiceConnection. Each subscription has its own audio player and queue,
@@ -49,6 +50,7 @@ export default class MusicSubscription {
 				// If the Idle state is entered from a non-Idle state, it means that an audio resource has finished playing.
 				// The queue is then processed to start playing the next track, if one is available.
 				(oldState.resource as AudioResource<Track>).metadata.onFinish();
+				musics_played.inc()
 				void this.processQueue();
 			} else if (newState.status === AudioPlayerStatus.Playing) {
 				// If the Playing state has been entered, then a new track has started playback.

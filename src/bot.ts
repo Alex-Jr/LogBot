@@ -2,7 +2,7 @@ import { Client, Intents } from 'discord.js';
 import { commands_received } from './prometheus';
 import commands from './commands'
 
-export const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_VOICE_STATES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
+export const client = new Client({ intents: [ Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_VOICE_STATES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS ] });
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user?.tag}!`);
@@ -21,6 +21,6 @@ client.on('interactionCreate', async (interaction) => {
 		commands_received.inc(1)
 	} catch (error) {
 		console.error(error);
-		return interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+		return interaction.reply('Ops, escorreguei em uns bits!');
 	}
 });

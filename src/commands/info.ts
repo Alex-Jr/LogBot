@@ -4,16 +4,16 @@ import type Command from "../interfaces/Command"
 
 const data = new SlashCommandBuilder()
     .setName('info')
-    .setDescription('Get info about a user or a server!')
+    .setDescription('Retorna informações sobre o usuário ou servidor!')
     .addSubcommand(subcommand =>
         subcommand
             .setName('user')
-            .setDescription('Info about a user')
-            .addUserOption(option => option.setName('target').setDescription('The user')))
+            .setDescription('Informações do usuário')
+            .addUserOption(option => option.setName('target').setDescription('Usuário alvo')))
     .addSubcommand(subcommand =>
         subcommand
             .setName('server')
-            .setDescription('Info about the server'));
+            .setDescription('Informações do servidor'));
 
 
 async function user(interaction: CommandInteraction): Promise<void> {
@@ -21,15 +21,15 @@ async function user(interaction: CommandInteraction): Promise<void> {
 
     if(!user) return;
 
-    await interaction.reply(`Username: ${user.username}\nID: ${user.id}\nCreation: ${user.createdAt}`);
+    await interaction.reply(`Usuário: ${user.username}\nID: ${user.id}\nData Criação: ${user.createdAt}`);
 }
 
 async function server(interaction: CommandInteraction): Promise<void> {
-    const guild = interaction.guild;
+    const guild = interaction.guild; 
 
     if(!guild) return;
 
-    await interaction.reply(`Server name: ${guild.name}\nTotal members: ${guild.memberCount}\nCreation: ${guild.createdAt}`);
+    await interaction.reply(`Servidor: ${guild.name}\nN° membros: ${guild.memberCount}\nData Criação: ${guild.createdAt}`);
 }
 
 async function execute(interaction: CommandInteraction): Promise<void> {
@@ -41,7 +41,7 @@ async function execute(interaction: CommandInteraction): Promise<void> {
             await server(interaction);
             break;
         default:
-            await interaction.reply(`Ops, não sei nada sobre isso.`);
+            await interaction.reply(`Ops, comando desconhecido.`);
     }
 }
 

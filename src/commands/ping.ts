@@ -4,11 +4,11 @@ import type Command from "../interfaces/Command"
 
 const data = new SlashCommandBuilder()
 	.setName('ping')
-	.setDescription('Replies with Pong!');
+	.setDescription('Pong!');
 
 async function execute(interaction: CommandInteraction): Promise<void> {
 	const latency = Date.now() - interaction.createdTimestamp;
-	await interaction.reply(`Pong in ${latency} ms!`);
+	await interaction.reply(`Pong em ${latency} ms!`);
 }
 
 export default {

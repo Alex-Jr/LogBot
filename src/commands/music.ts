@@ -15,7 +15,7 @@ const data = new SlashCommandBuilder()
   .addSubcommand(subcommand => 
     subcommand
       .setName('play')
-      .setDescription('Play a music')
+      .setDescription('Toca uma música')
       .addStringOption((option) => 
         option
           .setName('song')
@@ -26,27 +26,27 @@ const data = new SlashCommandBuilder()
   .addSubcommand(subcommand => 
     subcommand
       .setName('skip')
-      .setDescription('Skip a music')  
+      .setDescription('Pula uma música')  
   )
   .addSubcommand(subcommand => 
     subcommand
       .setName('queue')
-      .setDescription('Show musics in queue')  
+      .setDescription('Mostra músicas na fila')  
   )
   .addSubcommand(subcommand => 
     subcommand
       .setName('pause')
-      .setDescription('Pause player')  
+      .setDescription('Pausa a música')  
   )
   .addSubcommand(subcommand => 
     subcommand
     .setName('resume')
-    .setDescription('Resume player')
+    .setDescription('Retorna a música')
   )
   .addSubcommand(subcommand => 
     subcommand
       .setName('leave')
-      .setDescription('Leave')  
+      .setDescription('Para as músicas')  
   );
 
 async function play(interaction: CommandInteraction, subscription: MusicSubscription | undefined) {
@@ -72,7 +72,7 @@ async function play(interaction: CommandInteraction, subscription: MusicSubscrip
 
   // If there is no subscription, tell the user they need to join a channel.
   if (!subscription) {
-    await interaction.followUp('Join a voice channel and then try that again!');
+    await interaction.followUp('Você não está em um canal de voz!');
     return;
   }
 
@@ -81,7 +81,7 @@ async function play(interaction: CommandInteraction, subscription: MusicSubscrip
     await entersState(subscription.voiceConnection, VoiceConnectionStatus.Ready, 20e3);
   } catch (error) {
     console.warn(error);
-    await interaction.followUp('Failed to join voice channel within 20 seconds, please try again later!');
+    await interaction.followUp('Hmmm, não consegui entrar no canal de voz');
     return;
   }
 
@@ -89,22 +89,22 @@ async function play(interaction: CommandInteraction, subscription: MusicSubscrip
     // Attempt to create a Track from the user's video URL
     const track = await Track.from(url, {
       onStart() {
-        interaction.followUp({ content: 'Now playing!' }).catch(console.warn);
+        interaction.followUp({ content: 'Tocando...' }).catch(console.warn);
       },
       onFinish() {
-        interaction.followUp({ content: 'Now finished!' }).catch(console.warn);
+        interaction.followUp({ content: 'Acabou!' }).catch(console.warn);
       },
       onError(error) {
         console.warn(error);
-        interaction.followUp({ content: `Error: ${error.message}`, ephemeral: true }).catch(console.warn);
+        interaction.followUp({ content: 'Hmmmm, algo deu ruim!' }).catch(console.warn);
       },
     });
     // Enqueue the track and reply a success message to the user
     subscription.enqueue(track);
-    await interaction.followUp(`Enqueued **${track.title}**`);
+    await interaction.followUp(`Adicionado a fila **${track.title}**`);
   } catch (error) {
     console.warn(error);
-    await interaction.editReply('Failed to play track, please try again later!');
+    await interaction.editReply('Ops, algo de errado não está certo!');
   }
 } 
 
@@ -114,9 +114,9 @@ async function skip(interaction: CommandInteraction, subscription: MusicSubscrip
     // listener defined in music/subscription.ts, transitions into the Idle state mean the next track from the queue
     // will be loaded and played.
     subscription.audioPlayer.stop();
-    await interaction.editReply('Skipped song!');
+    await interaction.editReply('Passando!');
   } else {
-    await interaction.editReply('Not playing in this server!');
+    await interaction.editReply('Nada está tocando!');
   }
 }
 
@@ -125,8 +125,8 @@ async function queue(interaction: CommandInteraction, subscription: MusicSubscri
   if (subscription) {
     const current =
       subscription.audioPlayer.state.status === AudioPlayerStatus.Idle
-        ? `Nothing is currently playing!`
-        : `Playing **${(subscription.audioPlayer.state.resource as AudioResource<Track>).metadata.title}**`;
+        ? `Nada na fila!`
+        : `Tocando **${(subscription.audioPlayer.state.resource as AudioResource<Track>).metadata.title}**`;
 
     const queue = subscription.queue
       .slice(0, 5)
@@ -135,25 +135,25 @@ async function queue(interaction: CommandInteraction, subscription: MusicSubscri
 
     await interaction.editReply(`${current}\n\n${queue}`);
   } else {
-    await interaction.editReply('Not playing in this server!');
+    await interaction.editReply('Nada está tocando!');
   }
 }
 
 async function pause(interaction: CommandInteraction, subscription: MusicSubscription | undefined) {
   if (subscription) {
     subscription.audioPlayer.pause();
-    await interaction.editReply({ content: `Paused!` });
+    await interaction.editReply({ content: `Esperando...` });
   } else {
-    await interaction.editReply('Not playing in this server!');
+    await interaction.editReply('Nada está tocando!');
   }
 }
 
 async function resume(interaction: CommandInteraction, subscription: MusicSubscription | undefined) {
   if (subscription) {
     subscription.audioPlayer.unpause();
-    await interaction.editReply({ content: `Unpaused!` });
+    await interaction.editReply({ content: `Voltei!` });
   } else {
-    await interaction.editReply('Not playing in this server!');
+    await interaction.editReply('Nada está tocando!');
   }
 }
 
@@ -161,9 +161,9 @@ async function leave(interaction: CommandInteraction, subscription: MusicSubscri
   if (subscription) {
     subscription.voiceConnection.destroy();
     subscriptions.delete(interaction.guildId!);
-    await interaction.editReply({ content: `Left channel!` });
+    await interaction.editReply({ content: `Até logo!` });
   } else {
-    await interaction.editReply('Not playing in this server!');
+    await interaction.editReply('Nada está tocando!');
   }
 }
 
@@ -194,7 +194,7 @@ async function execute(interaction: CommandInteraction): Promise<void> {
       await leave(interaction, subscription)
       break;
     default:
-      await interaction.editReply('Unknown command');
+      await interaction.editReply('Não conheço essa!');
       break;
   }
 
