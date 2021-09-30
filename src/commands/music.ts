@@ -77,7 +77,7 @@ async function handleTracks(url: string, subscription: MusicSubscription, intera
   const songs = [] as string[]
 
   let response = '';
-  if(url.indexOf('playlist')) {
+  if(url.indexOf('playlist') !== -1) {
     const result = await ytpl(url, { limit: 20 })
     result.items.forEach(item => {
       console.log(item)
@@ -86,7 +86,7 @@ async function handleTracks(url: string, subscription: MusicSubscription, intera
     response = `Playlist: ${result.title}`
   } else {
     songs.push(url)
-    response = `Música adicionada!`
+    response = `Adicionado!`
   }
 
   for(const song of songs) {
@@ -104,6 +104,7 @@ async function handleSongInput(interaction: CommandInteraction, song: string): P
   }
 
   try {
+    // Check if song is already a URL
     new URL(song)
     return song
   } catch (_) {
