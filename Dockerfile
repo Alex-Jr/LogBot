@@ -9,7 +9,8 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install all dependencies
-RUN apk upgrade --update && \
+RUN echo "nameserver 1.1.1.1" > /etc/resolv.conf && \ 
+  apk upgrade --update && \
   apk add --no-cache -t build-dependencies make gcc g++ python2 libtool autoconf automake youtube-dl && \
   npm install
 
