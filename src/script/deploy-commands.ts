@@ -5,7 +5,7 @@ import commands from '../commands/index';
 
 // Place your client and guild ids here
 const clientId = '581844036092952586';
-const guildId = '884248430854148146';
+const guildId = '468882535603240981';
 
 const rest = new REST({ version: '9' }).setToken(process.env.TOKEN || '');
 

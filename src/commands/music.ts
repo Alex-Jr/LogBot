@@ -2,10 +2,14 @@ import 'dotenv/config'
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { AudioPlayerStatus, AudioResource, entersState, joinVoiceChannel, VoiceConnectionStatus } from '@discordjs/voice';
 import { GuildMember, Snowflake } from 'discord.js';
-import type { CommandInteraction } from 'discord.js';
+import type { CommandInteraction, Message } from 'discord.js';
 import type Command from "../interfaces/Command"
 import MusicSubscription from '../classes/MusicSubscription';
 import Track from '../classes/Track';
+import searchMusic from '../utils/queryMusic';
+import { musics_played } from '../prometheus';
+import ytpl from 'ytpl';
+import sleep from '../utils/sleep';
 
 const subscriptions = new Map<Snowflake, MusicSubscription>();
 
@@ -49,9 +53,100 @@ const data = new SlashCommandBuilder()
       .setDescription('Para as músicas')  
   );
 
+const reactions = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣']
+
+async function handleTracks(url: string, subscription: MusicSubscription, interaction: CommandInteraction): Promise<string> {
+  async function addTrack(song: string) {
+    const track = await Track.from(song, {
+      onStart() {
+        interaction.followUp({ content: 'Tocando...' }).catch(console.warn);
+      },
+      onFinish() {
+        interaction.followUp({ content: 'Acabou!' }).catch(console.warn);
+        musics_played.inc();
+      },
+      onError(error) {
+        console.warn(error);
+        interaction.followUp({ content: 'Hmmmm, algo deu ruim!' }).catch(console.warn);
+      },
+    });
+    // Enqueue the track and reply a success message to the user
+    subscription.enqueue(track);
+  }
+
+  const songs = [] as string[]
+
+  let response = '';
+  if(url.indexOf('playlist')) {
+    const result = await ytpl(url, { limit: 20 })
+    result.items.forEach(item => {
+      console.log(item)
+      songs.push(item.url)
+    });
+    response = `Playlist: ${result.title}`
+  } else {
+    songs.push(url)
+    response = `Música adicionada!`
+  }
+
+  for(const song of songs) {
+    await addTrack(song)
+    await sleep(1000)
+  }
+  // Attempt to create a Track from the user's video URL
+  
+  return response
+}
+
+async function handleSongInput(interaction: CommandInteraction, song: string): Promise<string | undefined> {
+  function filter (reaction: any, user: any) {
+    return reactions.includes(reaction.emoji.name) && user.id === interaction.user.id;
+  }
+
+  try {
+    new URL(song)
+    return song
+  } catch (_) {
+    const results = await searchMusic(song);
+  
+    let msg = 'Músicas:\n';
+    
+    results.forEach((result, index) => {
+      msg += `${index + 1}° - ${result.title}\n`
+    })
+  
+    const message = await interaction.editReply(msg) as Message;
+  
+    for(const reaction of reactions) {
+      await message.react(reaction);
+    }
+      
+    let index = 0;
+  
+    try {
+      const collected = await message.awaitReactions({ filter, max: 1, time: 20000, errors: ['time'] })
+  
+      const reactionSelected = collected.first();
+      
+      index = reactions.findIndex((reaction) => reaction === reactionSelected?.emoji.name);
+      await message.edit(`Escolhida: ${results[index].title}`);
+
+      return results[index].link
+    } catch (err) {
+      return undefined;
+    }
+  }
+}
 async function play(interaction: CommandInteraction, subscription: MusicSubscription | undefined) {
   // Extract the video URL from the command
-  const url = interaction.options.get('song')!.value! as string;
+  const song = interaction.options.getString('song')!
+
+  const url = await handleSongInput(interaction, song)
+
+  if(!url) {
+    await interaction.editReply('Não encontrei sua música')
+    return
+  }
 
   // If a connection to the guild doesn't already exist and the user is in a voice channel, join that channel
   // and create a subscription.
@@ -86,22 +181,9 @@ async function play(interaction: CommandInteraction, subscription: MusicSubscrip
   }
 
   try {
-    // Attempt to create a Track from the user's video URL
-    const track = await Track.from(url, {
-      onStart() {
-        interaction.followUp({ content: 'Tocando...' }).catch(console.warn);
-      },
-      onFinish() {
-        interaction.followUp({ content: 'Acabou!' }).catch(console.warn);
-      },
-      onError(error) {
-        console.warn(error);
-        interaction.followUp({ content: 'Hmmmm, algo deu ruim!' }).catch(console.warn);
-      },
-    });
-    // Enqueue the track and reply a success message to the user
-    subscription.enqueue(track);
-    await interaction.followUp(`Adicionado a fila **${track.title}**`);
+    const response = await handleTracks(url, subscription, interaction)
+    
+    await interaction.followUp(response);
   } catch (error) {
     console.warn(error);
     await interaction.editReply('Ops, algo de errado não está certo!');

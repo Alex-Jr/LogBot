@@ -40,6 +40,8 @@
     "prom-client": "^14.0.0",
     "sodium": "^3.0.2",
     "youtube-dl-exec": "^1.2.14",
-    "ytdl-core": "^4.9.1"
+    "youtube-search": "^1.1.6",
+    "ytdl-core": "^4.9.1",
+    "ytpl": "^2.2.3"
   }
 }
