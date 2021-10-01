@@ -98,7 +98,6 @@ async function handleTracks(songInfo: SongInfo, subscription: MusicSubscription,
   }
 
   for(const song of songs) {
-    console.log(song)
     await addTrack(song.url, song.title)
     await sleep(1000)
   }
