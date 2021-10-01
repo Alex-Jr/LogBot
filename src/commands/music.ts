@@ -14,7 +14,7 @@ import sleep from '../utils/sleep';
 
 const data = new SlashCommandBuilder()
 	.setName('music')
-	.setDescription('Play youtube music and playlists!')
+	.setDescription('Toca músicas e playlist do youtube')
   .addSubcommand(subcommand => 
     subcommand
       .setName('play')
@@ -22,7 +22,7 @@ const data = new SlashCommandBuilder()
       .addStringOption((option) => 
         option
           .setName('song')
-          .setDescription('Music name')
+          .setDescription('Link da música ou playlist ou nome da música')
           .setRequired(true)
       )
   )
@@ -252,8 +252,7 @@ async function resume(interaction: CommandInteraction, subscription: MusicSubscr
 
 async function leave(interaction: CommandInteraction, subscription: MusicSubscription | undefined) {
   if (subscription) {
-    subscription.voiceConnection.destroy();
-    subscriptions.delete(interaction.guildId!);
+    subscription.stop()
     await interaction.editReply({ content: `Até logo!` });
   } else {
     await interaction.editReply('Nada está tocando!');
@@ -294,8 +293,6 @@ async function execute(interaction: CommandInteraction): Promise<void> {
       await interaction.editReply('Não conheço essa!');
       break;
   }
-
-  // await interaction.reply('Ok!')
 }
 
 export default {
