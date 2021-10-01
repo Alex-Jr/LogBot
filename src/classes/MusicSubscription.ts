@@ -13,7 +13,7 @@ import type {
 } from '@discordjs/voice';
 import Track from './Track';
 import sleep from '../utils/sleep';
-import { musics_played } from '../prometheus';
+import type { TextBasedChannels } from 'discord.js';
 
 /**
  * A MusicSubscription exists for each active VoiceConnection. Each subscription has its own audio player and queue,
@@ -22,12 +22,14 @@ import { musics_played } from '../prometheus';
 export default class MusicSubscription {
 	public readonly voiceConnection: VoiceConnection;
 	public readonly audioPlayer: AudioPlayer;
+	public readonly textChannel: TextBasedChannels;
 	public queue: Track[];
 	public queueLock = false;
 	public readyLock = false;
 
-	public constructor(voiceConnection: VoiceConnection) {
+	public constructor(voiceConnection: VoiceConnection, textChannel: TextBasedChannels) {
 		this.voiceConnection = voiceConnection;
+		this.textChannel = textChannel
 		this.audioPlayer = createAudioPlayer();
 		this.queue = [];
 
@@ -140,6 +142,11 @@ export default class MusicSubscription {
 	private async processQueue(): Promise<void> {
 		// If the queue is locked (already being processed), is empty, or the audio player is already playing something, return
 		if (this.queueLock || this.audioPlayer.state.status !== AudioPlayerStatus.Idle || this.queue.length === 0) {
+			// This bugs the bot and he cant enter the channel anymore!
+			// if(this.queue.length === 0) {
+			// 	this.textChannel.send("Fila vazia, desconectando...")
+			// 	this.voiceConnection.destroy()
+			// }
 			return;
 		}
 		// Lock the queue to guarantee safe access

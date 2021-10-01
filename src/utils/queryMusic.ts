@@ -5,7 +5,7 @@ import type { YouTubeSearchResults } from 'youtube-search'
 export default async function searchMusic(name: string): Promise<YouTubeSearchResults[]>{
     const query = await search(name, {
       key: process.env.YTKEY,
-      maxResults: 5,
+      maxResults: 3,
     })
   
     return query.results

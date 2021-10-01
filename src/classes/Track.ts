@@ -58,8 +58,8 @@ export default class Track implements TrackData {
 		});
 	}
 
-    public static async from(url: string, methods: Pick<Track, 'onStart' | 'onFinish' | 'onError'>): Promise<Track> {
-		const info = await getInfo(url);
+    public static async from(url: string, methods: Pick<Track, 'onStart' | 'onFinish' | 'onError'>, title?: string): Promise<Track> {
+		const info = title ? { videoDetails: { title }} : await getInfo(url);
 
 		// The methods are wrapped so that we can ensure that they are only called once.
 		const wrappedMethods = {

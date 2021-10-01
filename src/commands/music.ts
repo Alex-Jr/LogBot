@@ -8,7 +8,8 @@ import MusicSubscription from '../classes/MusicSubscription';
 import Track from '../classes/Track';
 import searchMusic from '../utils/queryMusic';
 import { musics_played } from '../prometheus';
-import ytpl from 'ytpl';
+import { default as getPlaylistInfo } from 'ytpl';
+import { getInfo as getSongInfo } from 'ytdl-core';
 import sleep from '../utils/sleep';
 
 const subscriptions = new Map<Snowflake, MusicSubscription>();
@@ -53,44 +54,52 @@ const data = new SlashCommandBuilder()
       .setDescription('Para as músicas')  
   );
 
-const reactions = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣']
+interface SongInfo {
+  url: string,
+  title?: string
+}
 
-async function handleTracks(url: string, subscription: MusicSubscription, interaction: CommandInteraction): Promise<string> {
-  async function addTrack(song: string) {
+const reactions = ['1️⃣', '2️⃣', '3️⃣', '🇽']
+
+async function handleTracks(songInfo: SongInfo, subscription: MusicSubscription, interaction: CommandInteraction): Promise<string> {
+  async function addTrack(song: string, title: string) {
     const track = await Track.from(song, {
       onStart() {
-        interaction.followUp({ content: 'Tocando...' }).catch(console.warn);
+        subscription.textChannel.send(`Tocando... ${ title }`).catch(console.warn);
       },
       onFinish() {
-        interaction.followUp({ content: 'Acabou!' }).catch(console.warn);
+        // interaction.followUp({ content: 'Acabou!' }).catch(console.warn);
         musics_played.inc();
       },
       onError(error) {
         console.warn(error);
-        interaction.followUp({ content: 'Hmmmm, algo deu ruim!' }).catch(console.warn);
+        subscription.textChannel.send('Hmmmm, algo deu ruim!').catch(console.warn);
       },
     });
     // Enqueue the track and reply a success message to the user
     subscription.enqueue(track);
   }
 
-  const songs = [] as string[]
+  const songs = [] as { url: string, title: string }[]
 
   let response = '';
-  if(url.indexOf('playlist') !== -1) {
-    const result = await ytpl(url, { limit: 20 })
+  if(songInfo.url.indexOf('playlist') !== -1) {
+    const result = await getPlaylistInfo(songInfo.url, { limit: 20 })
+
     result.items.forEach(item => {
-      console.log(item)
-      songs.push(item.url)
+      songs.push({ url: item.shortUrl, title: item.title })
     });
     response = `Playlist: ${result.title}`
   } else {
-    songs.push(url)
-    response = `Adicionado!`
+    const result = await getSongInfo(songInfo.url)
+  
+    songs.push({ url: songInfo.url, title: result.videoDetails.title })
+    response = `Música: ${result.videoDetails.title}`
   }
 
   for(const song of songs) {
-    await addTrack(song)
+    console.log(song)
+    await addTrack(song.url, song.title)
     await sleep(1000)
   }
   // Attempt to create a Track from the user's video URL
@@ -98,7 +107,7 @@ async function handleTracks(url: string, subscription: MusicSubscription, intera
   return response
 }
 
-async function handleSongInput(interaction: CommandInteraction, song: string): Promise<string | undefined> {
+async function handleSongInput(interaction: CommandInteraction, song: string): Promise<SongInfo | undefined> {
   function filter (reaction: any, user: any) {
     return reactions.includes(reaction.emoji.name) && user.id === interaction.user.id;
   }
@@ -106,7 +115,7 @@ async function handleSongInput(interaction: CommandInteraction, song: string): P
   try {
     // Check if song is already a URL
     new URL(song)
-    return song
+    return { url: song }
   } catch (_) {
     const results = await searchMusic(song);
   
@@ -119,7 +128,7 @@ async function handleSongInput(interaction: CommandInteraction, song: string): P
     const message = await interaction.editReply(msg) as Message;
   
     for(const reaction of reactions) {
-      await message.react(reaction);
+      message.react(reaction);
     }
       
     let index = 0;
@@ -130,9 +139,10 @@ async function handleSongInput(interaction: CommandInteraction, song: string): P
       const reactionSelected = collected.first();
       
       index = reactions.findIndex((reaction) => reaction === reactionSelected?.emoji.name);
-      await message.edit(`Escolhida: ${results[index].title}`);
 
-      return results[index].link
+      if(index === 3) return undefined
+
+      return { url: results[index].link, title: results[index].title }
     } catch (err) {
       return undefined;
     }
@@ -142,9 +152,9 @@ async function play(interaction: CommandInteraction, subscription: MusicSubscrip
   // Extract the video URL from the command
   const song = interaction.options.getString('song')!
 
-  const url = await handleSongInput(interaction, song)
+  const songInfo = await handleSongInput(interaction, song)
 
-  if(!url) {
+  if(!songInfo) {
     await interaction.editReply('Não encontrei sua música')
     return
   }
@@ -160,6 +170,7 @@ async function play(interaction: CommandInteraction, subscription: MusicSubscrip
           guildId: channel.guild.id,
           adapterCreator: channel.guild.voiceAdapterCreator,
         }),
+        interaction.channel!
       );
       subscription.voiceConnection.on('error', console.warn);
       subscriptions.set(interaction.guildId!, subscription);
@@ -168,7 +179,7 @@ async function play(interaction: CommandInteraction, subscription: MusicSubscrip
 
   // If there is no subscription, tell the user they need to join a channel.
   if (!subscription) {
-    await interaction.followUp('Você não está em um canal de voz!');
+    await interaction.editReply('Você não está em um canal de voz!');
     return;
   }
 
@@ -177,14 +188,14 @@ async function play(interaction: CommandInteraction, subscription: MusicSubscrip
     await entersState(subscription.voiceConnection, VoiceConnectionStatus.Ready, 20e3);
   } catch (error) {
     console.warn(error);
-    await interaction.followUp('Hmmm, não consegui entrar no canal de voz');
+    await interaction.editReply('Hmmm, não consegui entrar no canal de voz');
     return;
   }
 
   try {
-    const response = await handleTracks(url, subscription, interaction)
+    const response = await handleTracks(songInfo, subscription, interaction)
     
-    await interaction.followUp(response);
+    await interaction.editReply(response);
   } catch (error) {
     console.warn(error);
     await interaction.editReply('Ops, algo de errado não está certo!');
@@ -212,7 +223,7 @@ async function queue(interaction: CommandInteraction, subscription: MusicSubscri
         : `Tocando **${(subscription.audioPlayer.state.resource as AudioResource<Track>).metadata.title}**`;
 
     const queue = subscription.queue
-      .slice(0, 5)
+      .slice(0, 10)
       .map((track, index) => `${index + 1}) ${track.title}`)
       .join('\n');
 
