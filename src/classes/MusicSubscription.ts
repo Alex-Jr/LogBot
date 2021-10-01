@@ -26,6 +26,7 @@ export default class MusicSubscription {
 	public queue: Track[];
 	public queueLock = false;
 	public readyLock = false;
+	public destroyed = false;
 
 	public constructor(voiceConnection: VoiceConnection, textChannel: TextBasedChannels) {
 		this.voiceConnection = voiceConnection;
@@ -99,6 +100,7 @@ export default class MusicSubscription {
             Once destroyed, stop the subscription
         */
         this.stop();
+		this.destroyed = true;
     }
 
     private async handleConnecting() {
@@ -142,11 +144,10 @@ export default class MusicSubscription {
 	private async processQueue(): Promise<void> {
 		// If the queue is locked (already being processed), is empty, or the audio player is already playing something, return
 		if (this.queueLock || this.audioPlayer.state.status !== AudioPlayerStatus.Idle || this.queue.length === 0) {
-			// This bugs the bot and he cant enter the channel anymore!
-			// if(this.queue.length === 0) {
-			// 	this.textChannel.send("Fila vazia, desconectando...")
-			// 	this.voiceConnection.destroy()
-			// }
+			if(this.queue.length === 0) {
+				this.textChannel.send("Fila vazia, desconectando...")
+				this.voiceConnection.destroy()
+			}
 			return;
 		}
 		// Lock the queue to guarantee safe access

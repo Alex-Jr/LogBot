@@ -12,8 +12,6 @@ import { default as getPlaylistInfo } from 'ytpl';
 import { getInfo as getSongInfo } from 'ytdl-core';
 import sleep from '../utils/sleep';
 
-const subscriptions = new Map<Snowflake, MusicSubscription>();
-
 const data = new SlashCommandBuilder()
 	.setName('music')
 	.setDescription('Play youtube music and playlists!')
@@ -58,6 +56,8 @@ interface SongInfo {
   url: string,
   title?: string
 }
+
+const subscriptions = new Map<Snowflake, MusicSubscription>();
 
 const reactions = ['1️⃣', '2️⃣', '3️⃣', '🇽']
 
@@ -264,7 +264,11 @@ async function leave(interaction: CommandInteraction, subscription: MusicSubscri
 async function execute(interaction: CommandInteraction): Promise<void> {
   if(!interaction.guildId) return
 
-  const subscription = subscriptions.get(interaction.guildId);
+  let subscription = subscriptions.get(interaction.guildId);
+  
+  if(subscription?.destroyed) {
+    subscription = undefined // Make sure to create a new one
+  }
 
   await interaction.deferReply();
 
