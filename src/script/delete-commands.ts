@@ -4,10 +4,6 @@ import { Routes } from 'discord-api-types/v9';
 import commands from '../commands/index';
 import sleep from '../utils/sleep';
 
-// Place your client and guild ids here
-const clientId = '581844036092952586';
-const guildId = '884248430854148146';
-
 const rest = new REST({ version: '9' }).setToken(process.env.TOKEN || '');
 
 const commandsArray = Array.from(commands.values()).map((c) => c.data.toJSON());
@@ -23,7 +19,7 @@ interface commands {
 		console.log('Started fetching application (/) commands.');
 
 		const commands = await rest.get(
-			Routes.applicationGuildCommands(clientId, guildId),
+			Routes.applicationGuildCommands(process.env.CLIENT_ID!, process.env.GUILD_ID!),
 		) as commands[];
 
        

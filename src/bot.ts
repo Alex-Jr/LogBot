@@ -13,9 +13,14 @@ client.on('interactionCreate', async (interaction) => {
 
 	const command = commands.get(interaction.commandName);
 
-	if (!command) return;
+	if (!command) {
+		interaction.reply('Hmmm, não conheço essa.');
+		return
+	}
 
+	
 	try {
+		console.log(`${command.data.name} invocado por ${interaction.user.tag}`)
 		await command.execute(interaction)
 
 		commands_received.inc(1)
