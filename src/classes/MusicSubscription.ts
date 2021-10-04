@@ -23,6 +23,7 @@ export default class MusicSubscription {
 	public readonly voiceConnection: VoiceConnection;
 	public readonly audioPlayer: AudioPlayer;
 	public readonly textChannel: TextBasedChannels;
+	public disconnectTimeout: NodeJS.Timeout | undefined
 	public queue: Track[];
 	public queueLock = false;
 	public readyLock = false;
@@ -145,10 +146,15 @@ export default class MusicSubscription {
 		// If the queue is locked (already being processed), is empty, or the audio player is already playing something, return
 		if (this.queueLock || this.audioPlayer.state.status !== AudioPlayerStatus.Idle || this.queue.length === 0) {
 			if(this.queue.length === 0) {
-				this.textChannel.send("Fila vazia, desconectando...")
-				this.voiceConnection.destroy()
+				this.disconnectTimeout = setTimeout(() => {
+					this.voiceConnection.destroy()
+				}, 1000 * 60 * 5 ) // 5 min
 			}
 			return;
+		}
+		if(this.disconnectTimeout) {
+			clearTimeout(this.disconnectTimeout)
+			this.disconnectTimeout = undefined
 		}
 		// Lock the queue to guarantee safe access
 		this.queueLock = true;
