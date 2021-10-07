@@ -100,6 +100,8 @@ export default class MusicSubscription {
         /*
             Once destroyed, stop the subscription
         */
+		if(this.destroyed) return
+
         this.stop();
 		this.destroyed = true;
     }
@@ -137,6 +139,19 @@ export default class MusicSubscription {
 		this.queueLock = true;
 		this.queue = [];
 		this.audioPlayer.stop(true);
+	}
+
+	public shuffle(): void {
+		const copy = this.queue
+		
+		for (let i = copy.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			const temp = copy[i];
+			copy[i] = copy[j];
+			copy[j] = temp;
+		}
+		
+		this.queue = copy
 	}
 
 	/**

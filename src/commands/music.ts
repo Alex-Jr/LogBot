@@ -50,6 +50,11 @@ const data = new SlashCommandBuilder()
     subcommand
       .setName('leave')
       .setDescription('Para as músicas')  
+  )
+  .addSubcommand(subcommand => 
+    subcommand
+      .setName('shuffle')
+      .setDescription('Embaralha a fila')
   );
 
 interface SongInfo {
@@ -99,7 +104,6 @@ async function handleTracks(songInfo: SongInfo, subscription: MusicSubscription,
 
   for(const song of songs) {
     await addTrack(song.url, song.title)
-    await sleep(1000)
   }
   // Attempt to create a Track from the user's video URL
   
@@ -252,8 +256,16 @@ async function resume(interaction: CommandInteraction, subscription: MusicSubscr
 
 async function leave(interaction: CommandInteraction, subscription: MusicSubscription | undefined) {
   if (subscription) {
-    subscription.stop()
     await interaction.editReply({ content: `Até logo!` });
+  } else {
+    await interaction.editReply('Nada está tocando!');
+  }
+}
+
+async function shuffle(interaction: CommandInteraction, subscription: MusicSubscription | undefined) {
+  if (subscription) {
+    subscription.shuffle()
+    await interaction.editReply({ content: `Embaralhado!` });
   } else {
     await interaction.editReply('Nada está tocando!');
   }
@@ -288,6 +300,9 @@ async function execute(interaction: CommandInteraction): Promise<void> {
       break;
     case 'leave':
       await leave(interaction, subscription)
+      break;
+    case 'shuffle': 
+      await shuffle(interaction, subscription);
       break;
     default:
       await interaction.editReply('Não conheço essa!');
